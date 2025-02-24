@@ -1,91 +1,107 @@
-name: Step 0, Welcome
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيق طلب إنهاء الخدمة</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            direction: rtl;
+            text-align: right;
+            margin: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 400px;
+            margin: auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            font-weight: bold;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #5bc0de;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #31b0d5;
+        }
+    </style>
+</head>
+<body>
 
-# This step triggers after the learner creates a new repository from the template.
-# This workflow updates from step 0 to step 1.
+    <div class="container" id="formSection">
+        <h2>طلب إنهاء الخدمة</h2>
+        
+        <label for="name">الاسم الكامل:</label>
+        <input type="text" id="name" placeholder="أدخل اسمك" required>
 
-# This will run every time we create push a commit to `main`.
-# Reference: https://docs.github.com/en/actions/learn-github-actions/events-that-trigger-workflows
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
+        <label for="email">البريد الإلكتروني:</label>
+        <input type="email" id="email" placeholder="example@email.com" required>
 
-# Reference: https://docs.github.com/en/actions/security-guides/automatic-token-authentication
-permissions:
-  # Need `contents: read` to checkout the repository.
-  # Need `contents: write` to update the step metadata.
-  contents: write
+        <label for="reason">سبب إنهاء الخدمة:</label>
+        <select id="reason" required>
+            <option value="">اختر السبب</option>
+            <option value="عرض وظيفي جديد">عرض وظيفي جديد</option>
+            <option value="مشاكل في بيئة العمل">مشاكل في بيئة العمل</option>
+            <option value="أسباب شخصية">أسباب شخصية</option>
+            <option value="أخرى">أخرى</option>
+        </select>
 
-jobs:
-  # Get the current step to only run the main job when the learner is on the same step.
-  get_current_step:
-    name: Check current step number
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - id: get_step
-        run: |
-          echo "current_step=$(cat ./.github/steps/-step.txt)" >> $GITHUB_OUTPUT
-    outputs:
-      current_step: ${{ steps.get_step.outputs.current_step }}
+        <label for="details">تفاصيل إضافية:</label>
+        <textarea id="details" rows="4" placeholder="أدخل التفاصيل هنا..."></textarea>
 
-  on_start:
-    name: On start
-    needs: get_current_step
+        <button onclick="generateReport()">عرض الطلب</button>
+    </div>
 
-    # We will only run this action when:
-    # 1. This repository isn't the template repository.
-    # 2. The step is currently 0.
-    # Reference: https://docs.github.com/en/actions/learn-github-actions/contexts
-    # Reference: https://docs.github.com/en/actions/learn-github-actions/expressions
-    if: >-
-      ${{ !github.event.repository.is_template
-          && needs.get_current_step.outputs.current_step == 0 }}
+    <div class="container" id="printSection" style="display: none;">
+        <h2>طلب إنهاء الخدمة</h2>
+        <p><strong>الاسم الكامل:</strong> <span id="displayName"></span></p>
+        <p><strong>البريد الإلكتروني:</strong> <span id="displayEmail"></span></p>
+        <p><strong>سبب إنهاء الخدمة:</strong> <span id="displayReason"></span></p>
+        <p><strong>تفاصيل إضافية:</strong></p>
+        <p id="displayDetails"></p>
 
-    # We'll run Ubuntu for performance instead of Mac or Windows.
-    runs-on: ubuntu-latest
+        <button onclick="printForm()">🖨️ طباعة الطلب</button>
+        <button onclick="editForm()">✏️ تعديل الطلب</button>
+    </div>
 
-    steps:
-      # We'll need to check out the repository so that we can edit the README.
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # Let's get all the branches.
+    <script>
+        function generateReport() {
+            document.getElementById("displayName").innerText = document.getElementById("name").value;
+            document.getElementById("displayEmail").innerText = document.getElementById("email").value;
+            document.getElementById("displayReason").innerText = document.getElementById("reason").value;
+            document.getElementById("displayDetails").innerText = document.getElementById("details").value;
+            
+            document.getElementById("formSection").style.display = "none";
+            document.getElementById("printSection").style.display = "block";
+        }
 
-      # Make a branch, file, and commit for the learner.
-      - name: Prepare a branch, and file
-        run: |
-          echo "Make sure we are on step 0"
-          if [ "$(cat .github/steps/-step.txt)" != 0 ]
-          then
-            echo "Current step is not 0"
-            exit 0
-          fi
+        function editForm() {
+            document.getElementById("formSection").style.display = "block";
+            document.getElementById("printSection").style.display = "none";
+        }
 
-          echo "Make a branch"
-          BRANCH=welcome-workflow
-          git checkout -b $BRANCH
-
-          echo "Make a commit"
-          git config user.name github-actions[bot]
-          git config user.email github-actions[bot]@users.noreply.github.com
-          git commit --allow-empty --message="Create an empty commit"
-
-          echo "Push"
-          git push --set-upstream origin $BRANCH
-
-          echo "Restore main"
-          git checkout main
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # In README.md, switch step 0 for step 1.
-      - name: Update to step 1
-        uses: skills/action-update-step@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          from_step: 0
-          to_step: 1
-          branch_name: welcome-workflow
+        function printForm() {
+            window.print();
+        }
+    </script>
+</body>
+</html>
